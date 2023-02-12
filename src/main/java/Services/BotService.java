@@ -39,12 +39,14 @@ public class BotService {
 
         if (!gameState.getGameObjects().isEmpty()) {
             var foodList = gameState.getGameObjects()
-                    .stream().filter(item -> item.getGameObjectType() == ObjectTypes.FOOD)
+                    .stream().filter(item -> item.getGameObjectType() == ObjectTypes.PLAYER)
                     .sorted(Comparator
                             .comparing(item -> getDistanceBetween(bot, item)))
                     .collect(Collectors.toList());
 
             playerAction.heading = getHeadingBetween(foodList.get(0));
+
+            var x = getPlayerInRadius(10);
         }
 
         this.playerAction = playerAction;
@@ -80,5 +82,25 @@ public class BotService {
         return (int) (v * (180 / Math.PI));
     }
 
+    private double getDistanceOutter(GameObject obj1, GameObject obj2){
+        return getDistanceBetween(obj1, obj2) - obj1.getSize() - obj2.getSize();
+    }
 
+    private List<GameObject> getPlayerInRadius(double rad){
+        var player = gameState.playerGameObjects.
+                    stream().filter(item->getDistanceOutter(item, bot) <= rad).
+                    filter(item->getDistanceOutter(item, bot) > 0).collect(Collectors.toList());
+
+        System.out.println(player);
+        return player;
+    }
+
+    private void greedByFood(){
+        if (bot.getSize() < 20){
+            playerAction.action = PlayerActions.FORWARD;
+            
+            var foodList = gameState.gameObjects().stream()
+            .filter(item->item.getGameObjectType() == ObjectTypes)
+        }
+    }
 }
