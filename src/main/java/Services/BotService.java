@@ -34,22 +34,23 @@ public class BotService {
     }
 
     public void computeNextPlayerAction(PlayerAction playerAction) {
-        playerAction.action = PlayerActions.FORWARD;
-        playerAction.heading = new Random().nextInt(360);
-
-        if (!gameState.getGameObjects().isEmpty()) {
-            var foodList = gameState.getGameObjects()
-                    .stream().filter(item -> item.getGameObjectType() == ObjectTypes.PLAYER)
-                    .sorted(Comparator
-                            .comparing(item -> getDistanceBetween(bot, item)))
-                    .collect(Collectors.toList());
-
-            playerAction.heading = getHeadingBetween(foodList.get(0));
-
-            var x = getPlayerInRadius(10);
-        }
-
-        this.playerAction = playerAction;
+        // playerAction.action = PlayerActions.FORWARD;
+        // playerAction.heading = new Random().nextInt(360);
+        
+        // if (!gameState.getGameObjects().isEmpty()) {
+            //     var foodList = gameState.getGameObjects()
+            //             .stream().filter(item -> item.getGameObjectType() == ObjectTypes.PLAYER)
+            //             .sorted(Comparator
+            //                     .comparing(item -> getDistanceBetween(bot, item)))
+            //             .collect(Collectors.toList());
+            
+            //     playerAction.heading = getHeadingBetween(foodList.get(0));
+            
+            //     var x = getPlayerInRadius(10);
+            // }
+            
+        this.playerAction = greedByFood(playerAction);
+        this.playerAction = greedByOffense(playerAction);
     }
 
     public GameState getGameState() {
@@ -77,7 +78,7 @@ public class BotService {
                 otherObject.getPosition().x - bot.getPosition().x));
         return (direction + 360) % 360;
     }
-
+    
     private int toDegrees(double v) {
         return (int) (v * (180 / Math.PI));
     }
@@ -87,7 +88,7 @@ public class BotService {
     }
 
     private List<GameObject> getPlayerInRadius(double rad){
-        var player = gameState.playerGameObjects.
+        var player = gameState.getPlayerGameObjects().
                     stream().filter(item->getDistanceOutter(item, bot) <= rad).
                     filter(item->getDistanceOutter(item, bot) > 0).collect(Collectors.toList());
 
@@ -95,12 +96,68 @@ public class BotService {
         return player;
     }
 
-    private void greedByFood(){
-        if (bot.getSize() < 20){
+    private PlayerAction greedByFood(PlayerAction playerAction){
+        if (bot.getSize() < 1000 && !gameState.getGameObjects().isEmpty()){
             playerAction.action = PlayerActions.FORWARD;
             
-            var foodList = gameState.gameObjects().stream()
-            .filter(item->item.getGameObjectType() == ObjectTypes)
+            var foodList = gameState.getGameObjects()
+                    .stream().filter(item -> item.getGameObjectType() == ObjectTypes.FOOD)
+                    .sorted(Comparator
+                    .comparing(item -> getDistanceOutter(bot, item)))
+                    .collect(Collectors.toList());
+            
+            playerAction.heading = getHeadingBetween(foodList.get(0));
         }
+        return playerAction;
+    }
+
+    // private boolean isObstacleBetween(GameObject object){
+    //     int opX = object.getPosition().x;
+    //     int opY = object.getPosition().y;
+
+    //     var obs = gameState.getGameObjects().
+    //         stream().filter(item->item.getPosition().x < opX).
+    //         filter(item->item.getPosition().x <).collect(Collectors.toList());
+
+    //     if (obs.isEmpty()){
+    //         return false;
+    //     }
+    //     else {
+    //         return true;
+    //     }
+    // }
+
+
+
+    private PlayerAction greedByOffense(PlayerAction playerAction){
+        if (bot.getSize() > 50 && !gameState.getGameObjects().isEmpty()){
+            var candidate = getPlayerInRadius(200);
+            // BASIC ATTACK
+            if (!candidate.isEmpty() && bot.getSupernovaAvailable() == 0){
+
+                if (bot.getSize() > candidate.get(0).getSize() + 10) {
+                    playerAction.heading = getHeadingBetween(candidate.get(0));
+                    playerAction.action = PlayerActions.FORWARD;
+                }
+
+                else if (bot.getTorpedoCount() > 0){
+                    playerAction.action = PlayerActions.FIRETORPEDOES;
+                    GameObject target = candidate.get(0);
+                
+                    if (target.getCurrentHeading() > 0 && target.getCurrentHeading() < 180){
+                        playerAction.heading = getHeadingBetween(target) + 10;
+                    }  
+                    else {
+                        playerAction.heading = getHeadingBetween(target) - 10;
+                    }
+                }
+            }
+            // SUTACK SUPER ATTACK
+
+        }
+
+        return playerAction;
     }
 }
+
+
