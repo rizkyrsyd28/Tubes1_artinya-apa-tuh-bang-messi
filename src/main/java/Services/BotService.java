@@ -97,7 +97,7 @@ public class BotService {
     }
 
     private PlayerAction greedByFood(PlayerAction playerAction){
-        if (bot.getSize() < 1000 && !gameState.getGameObjects().isEmpty()){
+        if (bot.getSize() < 30 && !gameState.getGameObjects().isEmpty()){
             playerAction.action = PlayerActions.FORWARD;
             
             var foodList = gameState.getGameObjects()
@@ -108,6 +108,7 @@ public class BotService {
             
             playerAction.heading = getHeadingBetween(foodList.get(0));
         }
+        
         return playerAction;
     }
 
@@ -127,31 +128,84 @@ public class BotService {
     //     }
     // }
 
-
+    private int getEffOffset(GameObject obj){
+        if (obj.getCurrentHeading() > 0 && obj.getCurrentHeading() < 180){
+            return 8;
+        }  
+        else {
+            return -8;
+        }
+    }
 
     private PlayerAction greedByOffense(PlayerAction playerAction){
-        if (bot.getSize() > 50 && !gameState.getGameObjects().isEmpty()){
-            var candidate = getPlayerInRadius(200);
+        
+        // playerAction.action = PlayerActions.FORWARD;
+        // playerAction.heading = new Random().nextInt(360);
+        
+        if (bot.getSize() > 30 && !gameState.getGameObjects().isEmpty()){
+
+            // SUPER ATTACK
+            if (bot.getSupernovaAvailable() > 0){
+                System.out.println("RELEASE SUPERNOVA");
+            }
             // BASIC ATTACK
-            if (!candidate.isEmpty() && bot.getSupernovaAvailable() == 0){
+            else if (bot.getSupernovaAvailable() == 0){
+                var longRange = getPlayerInRadius(1000);
+                var shortRange = getPlayerInRadius(50);
 
-                if (bot.getSize() > candidate.get(0).getSize() + 10) {
-                    playerAction.heading = getHeadingBetween(candidate.get(0));
-                    playerAction.action = PlayerActions.FORWARD;
-                }
-
-                else if (bot.getTorpedoCount() > 0){
+                if (bot.getTorpedoCount() > 1){
                     playerAction.action = PlayerActions.FIRETORPEDOES;
-                    GameObject target = candidate.get(0);
-                
-                    if (target.getCurrentHeading() > 0 && target.getCurrentHeading() < 180){
-                        playerAction.heading = getHeadingBetween(target) + 10;
-                    }  
+                }
+                else if (!shortRange.isEmpty()){
+                    if (shortRange.get(0).getSize() + 10 > bot.getSize()){
+                        playerAction.action = PlayerActions.FIRETORPEDOES;
+                    }
                     else {
-                        playerAction.heading = getHeadingBetween(target) - 10;
+                        playerAction.action = PlayerActions.FORWARD;
                     }
                 }
+
+
+                if (!shortRange.isEmpty()){
+                    int offset = 0;
+
+                    if (playerAction.action == PlayerActions.FORWARD) offset = 0; 
+                    else if (playerAction.action == PlayerActions.FORWARD && shortRange.get(0).getSize() + 10 > bot.getSize()) offset = 180;
+                    else offset = 8;
+                    
+                    playerAction.heading = getHeadingBetween(shortRange.get(0)) + offset;
+
+                    if (offset == 0) System.out.println("EAT PLAYER");
+                    else if (offset == 180) System.out.println("CABSS");
+                }
+                else if (!longRange.isEmpty() && playerAction.action == PlayerActions.FIRETORPEDOES) {
+                    int offset = getEffOffset(longRange.get(0));
+
+                    playerAction.heading = getHeadingBetween(longRange.get(0)) + offset;
+
+                    System.out.println("FIRE TORPEDO");
+                }
+                
             }
+            // if (!candidate.isEmpty() && bot.getSupernovaAvailable() == 0){
+
+            //     // if (bot.getSize() > candidate.get(0).getSize() + 10) {
+            //     //     playerAction.heading = getHeadingBetween(candidate.get(0));
+            //     //     playerAction.action = PlayerActions.FORWARD;
+            //     // }
+
+            //     if (bot.getTorpedoCount() > 0){
+            //         playerAction.action = PlayerActions.FIRETORPEDOES;
+            //         GameObject target = candidate.get(0);
+                
+            //         if (target.getCurrentHeading() > 0 && target.getCurrentHeading() < 180){
+            //             playerAction.heading = getHeadingBetween(target) + 8;
+            //         }  
+            //         else {
+            //             playerAction.heading = getHeadingBetween(target) - 8;
+            //         }
+            //     }
+            // }
             // SUTACK SUPER ATTACK
 
         }
