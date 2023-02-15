@@ -58,10 +58,11 @@ public class Main {
 
         Thread.sleep(1000);
         System.out.println("Registering with the runner...");
-        hubConnection.send("Register", token, "Coffee Bot");
+        hubConnection.send("Register", token, "messi");
 
         //This is a blocking call
         hubConnection.start().subscribe(() -> {
+            int i=0;
             while (hubConnection.getConnectionState() == HubConnectionState.CONNECTED) {
                 Thread.sleep(20);
 
@@ -69,12 +70,15 @@ public class Main {
                 if (bot == null) {
                     continue;
                 }
-
-                botService.getPlayerAction().setPlayerId(bot.getId());
-                botService.computeNextPlayerAction(botService.getPlayerAction());
-                if (hubConnection.getConnectionState() == HubConnectionState.CONNECTED) {
-                    hubConnection.send("SendPlayerAction", botService.getPlayerAction());
+                if(botService.getGameState().world.getCurrentTick()!=null && i!=botService.getGameState().world.getCurrentTick()) {
+                    i=botService.getGameState().world.getCurrentTick();
+                    botService.getPlayerAction().setPlayerId(bot.getId());
+                    botService.computeNextPlayerAction(botService.getPlayerAction());
+                    if (hubConnection.getConnectionState() == HubConnectionState.CONNECTED) {
+                        hubConnection.send("SendPlayerAction", botService.getPlayerAction());
+                    }
                 }
+                
             }
         });
 
