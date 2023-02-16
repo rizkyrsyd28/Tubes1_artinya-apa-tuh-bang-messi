@@ -12,6 +12,7 @@ public class BotService {
     private GameObject bot;
     private PlayerAction playerAction;
     private GameState gameState;
+    private int teleHeading;
 
     public BotService() {
         this.playerAction = new PlayerAction();
@@ -306,17 +307,20 @@ public class BotService {
 
     }
 
-    // private boolean jumpTeleport(){
-    //     if (!gameState.getGameObjects().isEmpty()){
-    //         var tele = gameState.getGameObjects()
-    //                 .stream().filter(item -> item.getGameObjectType() == ObjectTypes.TELEPORTER)
-    //                 .sorted(Comparator
-    //                 .comparing(item -> getHeadingBetweenTwo(item, bot)))
-    //                 .collect(Collectors.toList());
-    //         for (int i)
-    //     }
-    //     return false;
-    // }
+    private boolean jumpTeleport(){
+        if (!gameState.getGameObjects().isEmpty()){
+            var tele = gameState.getGameObjects()
+                    .stream().filter(item -> item.getGameObjectType() == ObjectTypes.TELEPORTER && item.getCurrentHeading() == this.teleHeading)
+                    .sorted(Comparator
+                    .comparing(item -> getHeadingBetweenTwo(item, bot)))
+                    .collect(Collectors.toList());
+            if (!tele.isEmpty()){
+                if (isSave(tele.get(0))) return true;
+                else return false;
+            }
+        }
+        return false;
+    }
 
     private PlayerAction greedByFood(PlayerAction playerAction){
         var playerelse=gameState.getPlayerGameObjects().stream()
@@ -363,22 +367,26 @@ public class BotService {
         if (bot.getSize() >= 25 && !gameState.getGameObjects().isEmpty()){
 
             var all = getPlayerInRadius(3000);
-            var candidate = getPlayerInRadius(700);
+            var candidate = getPlayerInRadius(600);
             playerAction.heading = new Random().nextInt(8);
             
-            if (bot.getTorpedoCount() > 0 && !candidate.isEmpty()){
+            if (jumpTeleport()){
+                playerAction.action = PlayerActions.TELEPORT;
+            }
+            else if (bot.getTorpedoCount() > 0 && !candidate.isEmpty()){
                 playerAction.action = PlayerActions.FIRETORPEDOES;
                 playerAction.heading = getHeadingBetween(candidate.get(0));
                 System.out.println("FIRE");
             }
-            // else if (bot.getTorpedoCount() == 0 && bot.getTeleCount() > 0 && !all.isEmpty()){
-            //     playerAction.action = PlayerActions.FIRETELEPORT;
-            //     playerAction.heading += getHeadingBetween(all.get(0));
-            // }
+            else if (bot.getSize() > 40 && all.get(0).getSize() < bot.getSize() && bot.getTorpedoCount() == 0 && bot.getTeleCount() > 0 && !all.isEmpty()){
+                playerAction.action = PlayerActions.FIRETELEPORT;
+                playerAction.heading += getHeadingBetween(all.get(0));
+            }
             else if (bot.getTorpedoCount() == 0 && !candidate.isEmpty()){
                 if (getDistanceOutter(candidate.get(0), bot) < 10 && candidate.get(0).getSize() + 13 < bot.getSize()){
                     playerAction.action = PlayerActions.FORWARD;
-                    playerAction.heading = getHeadingBetween(candidate.get(0));
+                    int offset = new Random().nextInt(3);
+                    playerAction.heading = getHeadingBetween(candidate.get(0)) + offset;
                     System.out.println("FORWARD");
                 }
             }
