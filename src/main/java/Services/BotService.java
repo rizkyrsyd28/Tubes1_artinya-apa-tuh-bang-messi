@@ -63,8 +63,10 @@ public class BotService {
         System.out.println("posisi x: "+bot.getPosition().x);
         System.out.println("posisi y: "+bot.getPosition().y);
         System.out.println("-------------------------");
-        
-        if(bot.getSize()<25){
+        if(bot.getSize()<15){
+            playerAction=greedByFood(playerAction);
+        }
+        else if(bot.getSize()<25){
             if(inWorld()){
                 var torpedoList=gameState.getGameObjects().stream()
                 .filter(item->item.getGameObjectType()==ObjectTypes.TORPEDOSALVO && 
@@ -97,15 +99,20 @@ public class BotService {
                     }
                     
                 }
-                else if(getDistanceBetween(bot,gasList.get(0))-(bot.getSize()+gasList.get(0).getSize())<10){
-                    differenceHeading=bot.getCurrentHeading()-getHeadingBetween( gasList.get(0));
-                    if(differenceHeading>0){
-                        playerAction.action=PlayerActions.FORWARD;
-                        playerAction.heading=(bot.getCurrentHeading()+100-Math.abs(differenceHeading)+360)%360;
+                else if(!gasList.isEmpty()){
+                    if(getDistanceBetween(bot,gasList.get(0))-(bot.getSize()+gasList.get(0).getSize())<10){
+                        differenceHeading=bot.getCurrentHeading()-getHeadingBetween( gasList.get(0));
+                        if(differenceHeading>0){
+                            playerAction.action=PlayerActions.FORWARD;
+                            playerAction.heading=(bot.getCurrentHeading()+100-Math.abs(differenceHeading)+360)%360;
+                        }
+                        else{
+                            playerAction.action=PlayerActions.FORWARD;
+                            playerAction.heading=(bot.getCurrentHeading()-100+Math.abs(differenceHeading)+360)%360;
+                        }
                     }
                     else{
-                        playerAction.action=PlayerActions.FORWARD;
-                        playerAction.heading=(bot.getCurrentHeading()-100+Math.abs(differenceHeading)+360)%360;
+                        playerAction=greedByFood(playerAction);
                     }
                 }
                 else {
@@ -152,15 +159,20 @@ public class BotService {
                     }
                     
                 }
-                else if(getDistanceBetween(bot,gasList.get(0))-(bot.getSize()+gasList.get(0).getSize())<10){
-                    differenceHeading=bot.getCurrentHeading()-getHeadingBetween( gasList.get(0));
-                    if(differenceHeading>0){
-                        playerAction.action=PlayerActions.FORWARD;
-                        playerAction.heading=(bot.getCurrentHeading()+100-Math.abs(differenceHeading)+360)%360;
+                else if(!gasList.isEmpty()){
+                    if(getDistanceBetween(bot,gasList.get(0))-(bot.getSize()+gasList.get(0).getSize())<10){
+                        differenceHeading=bot.getCurrentHeading()-getHeadingBetween( gasList.get(0));
+                        if(differenceHeading>0){
+                            playerAction.action=PlayerActions.FORWARD;
+                            playerAction.heading=(bot.getCurrentHeading()+100-Math.abs(differenceHeading)+360)%360;
+                        }
+                        else{
+                            playerAction.action=PlayerActions.FORWARD;
+                            playerAction.heading=(bot.getCurrentHeading()-100+Math.abs(differenceHeading)+360)%360;
+                        }
                     }
                     else{
-                        playerAction.action=PlayerActions.FORWARD;
-                        playerAction.heading=(bot.getCurrentHeading()-100+Math.abs(differenceHeading)+360)%360;
+                        playerAction=greedByFood(playerAction);
                     }
                 }
                 else if (bot.getSize() > 25 && !gameState.getGameObjects().isEmpty()){
@@ -312,28 +324,31 @@ public class BotService {
                     .collect(Collectors.toList());
         Comparator<GameObject> comparator = Comparator.comparing(item -> getDistanceBetween(bot, item));
         comparator=comparator.thenComparing(Comparator.comparing(item -> item.getPosition().x));
+        comparator=comparator.thenComparing(Comparator.comparing(item -> item.getPosition().y));
         // comparator=Comparator.thenComparing(Comparator.comparing(item -> item.getPosition().y));
         var food =gameState.getGameObjects()
             .stream().filter(item -> (item.getGameObjectType() == ObjectTypes.SUPERFOOD || item.getGameObjectType() == ObjectTypes.FOOD) && 
-            item.getPosition().x*item.getPosition().x+item.getPosition().y*item.getPosition().y+5*bot.getSize()*bot.getSize()<gameState.getWorld().getRadius()*gameState.getWorld().getRadius()
+            Math.sqrt(bot.getPosition().x*bot.getPosition().x+bot.getPosition().y*bot.getPosition().y+5*bot.getSize()*bot.getSize())+100<gameState.getWorld().getRadius()
             )
             .sorted(comparator)
             .collect(Collectors.toList());
         if(!playerelse.isEmpty()){
             food =gameState.getGameObjects()
             .stream().filter(item -> (item.getGameObjectType() == ObjectTypes.SUPERFOOD || item.getGameObjectType() == ObjectTypes.FOOD) && 
-            item.getPosition().x*item.getPosition().x+item.getPosition().y*item.getPosition().y+5*bot.getSize()*bot.getSize()<gameState.getWorld().getRadius()*gameState.getWorld().getRadius()
-            && getDistanceBetween(bot, playerelse.get(0))>50)
+            Math.sqrt(bot.getPosition().x*bot.getPosition().x+bot.getPosition().y*bot.getPosition().y+5*bot.getSize()*bot.getSize())+100<gameState.getWorld().getRadius()
+            )
             .sorted(comparator)
             .collect(Collectors.toList());
         }
-        else{
-            playerAction.heading=getHeadingToMid();
-        }
-        if (bot.getSize() < 1000 && !gameState.getGameObjects().isEmpty()){
+        
+        if (!gameState.getGameObjects().isEmpty()){
             playerAction.action = PlayerActions.FORWARD;
             
             playerAction.heading = getHeadingBetween(food.get(0));
+        }
+        else{
+            playerAction.action = PlayerActions.FORWARD;
+            playerAction.heading = getHeadingToMid();
         }
         // else {
         //     System.out.println("NO EAT");
