@@ -66,7 +66,53 @@ public class BotService {
         
         if(bot.getSize()<25){
             if(inWorld()){
-                playerAction=greedByFood(playerAction);
+                var torpedoList=gameState.getGameObjects().stream()
+                .filter(item->item.getGameObjectType()==ObjectTypes.TORPEDOSALVO && 
+                Math.abs(item.getCurrentHeading()-getHeadingBetweenObject(item,bot))<=45)
+                .collect(Collectors.toList());
+                var gasList=gameState.getGameObjects().stream()
+                .sorted(Comparator.comparing(item->getDistanceBetween(bot, item)))
+                .filter(item->item.getGameObjectType()==ObjectTypes.GAS_CLOUD)
+                .collect(Collectors.toList());
+                 int differenceHeading;
+                int dangerFromEpidermis=((int) bot.getSize()/bot.getSpeed())*60;
+
+                if(!torpedoList.isEmpty() && getDistanceBetween(bot, torpedoList.get(0))<1.5*dangerFromEpidermis){
+                    differenceHeading=torpedoList.get(0).getCurrentHeading()-getHeadingBetweenObject(torpedoList.get(0),bot);
+                    if(Math.abs(differenceHeading)<=5 && getDistanceBetween(bot, torpedoList.get(0))<dangerFromEpidermis && bot.getShieldCount()>0 && bot.getSize()>50){
+                        playerAction.action=PlayerActions.ACTIVATESHIELD;
+                        playerAction.heading=(torpedoList.get(0).getCurrentHeading()+270)%360;
+                    }
+                    else if(Math.abs(differenceHeading)<=5 && getDistanceBetween(bot, torpedoList.get(0))<dangerFromEpidermis && bot.getTorpedoCount()>0 && bot.getSize()>40){
+                        playerAction.action=PlayerActions.FIRETORPEDOES;
+                        playerAction.heading=getHeadingBetween(torpedoList.get(0));
+                    }
+                    else if(differenceHeading>0){
+                        playerAction.action=PlayerActions.FORWARD;
+                        playerAction.heading=(torpedoList.get(0).getCurrentHeading()+270)%360;
+                    }
+                    else{
+                        playerAction.action=PlayerActions.FORWARD;
+                        playerAction.heading=(torpedoList.get(0).getCurrentHeading()+90)%360;
+                    }
+                    
+                }
+                else if(getDistanceBetween(bot,gasList.get(0))-(bot.getSize()+gasList.get(0).getSize())<10){
+                    differenceHeading=bot.getCurrentHeading()-getHeadingBetween( gasList.get(0));
+                    if(differenceHeading>0){
+                        playerAction.action=PlayerActions.FORWARD;
+                        playerAction.heading=(bot.getCurrentHeading()+100-Math.abs(differenceHeading)+360)%360;
+                    }
+                    else{
+                        playerAction.action=PlayerActions.FORWARD;
+                        playerAction.heading=(bot.getCurrentHeading()-100+Math.abs(differenceHeading)+360)%360;
+                    }
+                }
+                else {
+                    playerAction=greedByFood(playerAction);
+
+                }
+
             }
             else{
                 playerAction.action=PlayerActions.FORWARD;
@@ -117,7 +163,9 @@ public class BotService {
                         playerAction.heading=(bot.getCurrentHeading()-100+Math.abs(differenceHeading)+360)%360;
                     }
                 }
-                
+                else if (bot.getSize() > 25 && !gameState.getGameObjects().isEmpty()){
+                    playerAction = greedByOffense(playerAction);
+                }
                 else{
                     playerAction=greedByFood(playerAction);
                 }
@@ -297,7 +345,7 @@ public class BotService {
     private PlayerAction greedByOffense(PlayerAction playerAction){
         
         
-        if (bot.getSize() >= 30 && !gameState.getGameObjects().isEmpty()){
+        if (bot.getSize() >= 25 && !gameState.getGameObjects().isEmpty()){
 
             var all = getPlayerInRadius(3000);
             var candidate = getPlayerInRadius(700);
@@ -308,10 +356,10 @@ public class BotService {
                 playerAction.heading = getHeadingBetween(candidate.get(0));
                 System.out.println("FIRE");
             }
-            else if (bot.getTorpedoCount() == 0 && bot.getTeleCount() > 0 && !all.isEmpty()){
-                playerAction.action = PlayerActions.FIRETELEPORT;
-                playerAction.heading += getHeadingBetween(all.get(0));
-            }
+            // else if (bot.getTorpedoCount() == 0 && bot.getTeleCount() > 0 && !all.isEmpty()){
+            //     playerAction.action = PlayerActions.FIRETELEPORT;
+            //     playerAction.heading += getHeadingBetween(all.get(0));
+            // }
             else if (bot.getTorpedoCount() == 0 && !candidate.isEmpty()){
                 if (getDistanceOutter(candidate.get(0), bot) < 10 && candidate.get(0).getSize() + 13 < bot.getSize()){
                     playerAction.action = PlayerActions.FORWARD;
