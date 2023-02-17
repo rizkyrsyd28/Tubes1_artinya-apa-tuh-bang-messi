@@ -6,8 +6,6 @@ import Models.*;
 import java.util.*;
 import java.util.stream.*;
 
-import javax.lang.model.type.NullType;
-
 public class BotService {
     private GameObject bot;
     private PlayerAction playerAction;
@@ -18,7 +16,6 @@ public class BotService {
         this.playerAction = new PlayerAction();
         this.gameState = new GameState();
     }
-
 
     public GameObject getBot() {
         return this.bot;
@@ -217,6 +214,9 @@ public class BotService {
 
                 }
 
+            } else {
+                playerAction.action = PlayerActions.FORWARD;
+                playerAction.heading = getHeadingToMid();
             }
             else{
                 cntutama++;
@@ -231,10 +231,11 @@ public class BotService {
                     .filter(item->item.getGameObjectType()==ObjectTypes.TORPEDOSALVO && 
                     Math.abs(item.getCurrentHeading()-getHeadingBetweenObject(item,bot))<=45)
                     .collect(Collectors.toList());
-            var gasList=gameState.getGameObjects().stream()
-                    .sorted(Comparator.comparing(item->getDistanceBetween(bot, item)))
-                    .filter(item->item.getGameObjectType()==ObjectTypes.GAS_CLOUD)
+            var playerListBySize = gameState.getPlayerGameObjects().stream()
+                    .filter(item -> item.getSize() > bot.getSize())
+                    .sorted(Comparator.comparing(item -> item.getSize()))
                     .collect(Collectors.toList());
+
             int differenceHeading;
             if(inWorld()){
                 int cntres=0;
@@ -291,6 +292,8 @@ public class BotService {
                 }
                 if (bot.getSize() > 25 && !gameState.getGameObjects().isEmpty() && cntres==0) {
                     playerAction = greedByOffense(playerAction);
+                } else {
+                    playerAction = greedByFood(playerAction);
                 }
                 else if(cntres==0){
                     playerAction=greedByFood(playerAction);
@@ -301,7 +304,7 @@ public class BotService {
                 playerAction.action=PlayerActions.FORWARD;
                 playerAction.heading=getHeadingToMid();
             }
-            
+
         }
         System.out.println("akhirrrrr");
         System.out.println("akhirrrrr");
@@ -310,16 +313,15 @@ public class BotService {
         if(gameState.world.radius!=null){
             if(Math.sqrt(bot.getPosition().x*bot.getPosition().x+bot.getPosition().y*bot.getPosition().y+5*bot.getSize()*bot.getSize())+50<gameState.getWorld().getRadius()){
                 return true;
-            }
-            else{
+            } else {
                 return false;
             }
-        }
-        else{
+        } else {
             return false;
         }
-        
+
     }
+
     public GameState getGameState() {
         return this.gameState;
     }
@@ -330,7 +332,8 @@ public class BotService {
     }
 
     private void updateSelfState() {
-        Optional<GameObject> optionalBot = gameState.getPlayerGameObjects().stream().filter(gameObject -> gameObject.id.equals(bot.id)).findAny();
+        Optional<GameObject> optionalBot = gameState.getPlayerGameObjects().stream()
+                .filter(gameObject -> gameObject.id.equals(bot.id)).findAny();
         optionalBot.ifPresent(bot -> this.bot = bot);
     }
 
@@ -339,80 +342,81 @@ public class BotService {
         var triangleY = Math.abs(object1.getPosition().y - object2.getPosition().y);
         return Math.sqrt(triangleX * triangleX + triangleY * triangleY);
     }
-    
+
     private int getHeadingBetween(GameObject otherObject) {
         var direction = toDegrees(Math.atan2(otherObject.getPosition().y - bot.getPosition().y,
-        otherObject.getPosition().x - bot.getPosition().x));
+                otherObject.getPosition().x - bot.getPosition().x));
         return (direction + 360) % 360;
     }
 
-    private int getHeadingBetweenObject(GameObject object2,GameObject object1) {
+    private int getHeadingBetweenObject(GameObject object2, GameObject object1) {
         var direction = toDegrees(Math.atan2(object1.getPosition().y - object2.getPosition().y,
                 object1.getPosition().x - object2.getPosition().x));
         return (direction + 360) % 360;
     }
-    private int getHeadingToMid(){
+
+    private int getHeadingToMid() {
         int direction;
-        if(gameState.getWorld().getCenterPoint()!=null){
-            direction = toDegrees(Math.atan2(gameState.world.getCenterPoint().y- bot.getPosition().y,
+        if (gameState.getWorld().getCenterPoint() != null) {
+            direction = toDegrees(Math.atan2(gameState.world.getCenterPoint().y - bot.getPosition().y,
                     gameState.world.getCenterPoint().x - bot.getPosition().x));
 
-        }
-        else{
-            direction = toDegrees(Math.atan2(0- bot.getPosition().y,
+        } else {
+            direction = toDegrees(Math.atan2(0 - bot.getPosition().y,
                     0 - bot.getPosition().x));
 
         }
         return (direction + 360) % 360;
     }
+
     private int toDegrees(double v) {
         return (int) (v * (180 / Math.PI));
     }
-    
-    private double getDistanceOutter(GameObject obj1, GameObject obj2){
+
+    private double getDistanceOutter(GameObject obj1, GameObject obj2) {
         return getDistanceBetween(obj1, obj2) - obj1.getSize() - obj2.getSize();
     }
-    
 
-    private List<GameObject> getPlayerInRadius(double rad){
-        var player = gameState.getPlayerGameObjects().
-                    stream().filter(item->getDistanceOutter(item, bot) < rad && item != bot)
-                    .sorted(Comparator.comparing(item-> getDistanceOutter(item, bot)))
-                    .collect(Collectors.toList());
-                    
-                    // System.out.println(player);
-                    return player;
+    private List<GameObject> getPlayerInRadius(double rad) {
+        var player = gameState.getPlayerGameObjects().stream()
+                .filter(item -> getDistanceOutter(item, bot) < rad && item != bot)
+                .sorted(Comparator.comparing(item -> getDistanceOutter(item, bot)))
+                .collect(Collectors.toList());
+
+        // System.out.println(player);
+        return player;
     }
 
     private int getHeadingBetweenTwo(GameObject obj1, GameObject obj2) {
         var direction = toDegrees(Math.atan2(obj2.getPosition().y - obj1.getPosition().y,
-        obj2.getPosition().x - obj1.getPosition().x));
+                obj2.getPosition().x - obj1.getPosition().x));
         return (direction + 360) % 360;
     }
-    
-    private boolean isSave(GameObject obj){
+
+    private boolean isSave(GameObject obj) {
         var objects = gameState.getGameObjects().stream()
-        .filter(item->getDistanceOutter(item, obj) < bot.getSize() + 15 
-        && item.getGameObjectType() != ObjectTypes.FOOD && item.getGameObjectType() != ObjectTypes.SUPERFOOD
-        && item.getGameObjectType() != ObjectTypes.WORMHOLE && item.getGameObjectType() != ObjectTypes.TELEPORTER
-        && item.getGameObjectType() != ObjectTypes.SUPERNOVAPICKUP && item.getGameObjectType() != ObjectTypes.SHIELD)
-        .collect(Collectors.toList());
+                .filter(item -> getDistanceOutter(item, obj) < bot.getSize() + 15
+                        && item.getGameObjectType() != ObjectTypes.FOOD
+                        && item.getGameObjectType() != ObjectTypes.SUPERFOOD
+                        && item.getGameObjectType() != ObjectTypes.WORMHOLE
+                        && item.getGameObjectType() != ObjectTypes.TELEPORTER
+                        && item.getGameObjectType() != ObjectTypes.SUPERNOVAPICKUP
+                        && item.getGameObjectType() != ObjectTypes.SHIELD)
+                .collect(Collectors.toList());
 
         boolean save = true;
 
-        if (!objects.isEmpty()){
-            for (int o = 0; o < objects.size(); o++){
-                if (objects.get(o).getGameObjectType() != ObjectTypes.ASTEROID_FIELD 
-                || objects.get(o).getGameObjectType() != ObjectTypes.GAS_CLOUD
-                || objects.get(o).getGameObjectType() != ObjectTypes.SUPERNOVABOMB
-                || objects.get(o).getGameObjectType() != ObjectTypes.TORPEDOSALVO){
+        if (!objects.isEmpty()) {
+            for (int o = 0; o < objects.size(); o++) {
+                if (objects.get(o).getGameObjectType() != ObjectTypes.ASTEROID_FIELD
+                        || objects.get(o).getGameObjectType() != ObjectTypes.GAS_CLOUD
+                        || objects.get(o).getGameObjectType() != ObjectTypes.SUPERNOVABOMB
+                        || objects.get(o).getGameObjectType() != ObjectTypes.TORPEDOSALVO) {
                     return false;
-                }
-                else if (objects.get(o).getGameObjectType() != ObjectTypes.PLAYER){
-                    if (objects.get(o).getSize() + 5 > bot.getSize()){
+                } else if (objects.get(o).getGameObjectType() != ObjectTypes.PLAYER) {
+                    if (objects.get(o).getSize() + 5 > bot.getSize()) {
                         return false;
-                    }
-                    else {
+                    } else {
                         save = save && true;
                     }
                 }
@@ -544,9 +548,9 @@ public class BotService {
             playerAction.heading = getHeadingToMid()%360;
         }
         // else {
-        //     System.out.println("NO EAT");
+        // System.out.println("NO EAT");
         // }
-    
+
         return playerAction;
     }
 
@@ -600,8 +604,8 @@ public class BotService {
             //     playerAction.heading = getHeadingBetween(all.get(0));
             //     System.out.println("Fire teleport");
             // }
-            else if (bot.getTorpedoCount() == 0 && !candidate.isEmpty()){
-                if (getDistanceOutter(candidate.get(0), bot) < 10 && candidate.get(0).getSize() + 13 < bot.getSize()){
+            else if (bot.getTorpedoCount() == 0 && !candidate.isEmpty()) {
+                if (getDistanceOutter(candidate.get(0), bot) < 10 && candidate.get(0).getSize() + 13 < bot.getSize()) {
                     playerAction.action = PlayerActions.FORWARD;
                     int offset = new Random().nextInt(3);
                     playerAction.heading = getHeadingBetween(candidate.get(0)) + offset;
@@ -623,11 +627,8 @@ public class BotService {
                 System.out.println("NO ATTACK");
             }
 
-
         }
 
         return playerAction;
     }
 }
-
-
