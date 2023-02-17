@@ -81,7 +81,7 @@ public class BotService {
             .collect(Collectors.toList());
             int differenceHeading;
             int dangerFromEpidermis=((int) bot.getSize()/bot.getSpeed())*60;
-            if(gameState.world.currentTick>400){
+            if(gameState.world.currentTick>900){
                 cntutama++;
                 System.out.println("hardcore");
                 if(bot.getSize()>40){
@@ -527,11 +527,11 @@ public class BotService {
         }
         else if (!food.isEmpty()){
             if(food.size()>1){
-                if(getDistanceBetween(food.get(0), bot)==getDistanceBetween(food.get(1), bot)){
+                if(getDistanceBetween(food.get(0), bot)-getDistanceBetween(food.get(1), bot)<20 &&food.size()>=2){
                     playerAction.action=PlayerActions.FORWARD;
                     System.out.println("samaaaaaaa");
                     System.out.println("samaaaaaaa");
-                    playerAction.heading = (getHeadingBetween(food.get(0))+10)%360;
+                    playerAction.heading = (getHeadingBetween(food.get(2)))%360;
                 }
                 else{
                     playerAction.action = PlayerActions.FORWARD;
@@ -608,8 +608,7 @@ public class BotService {
                     System.out.println("FORWARD");
                 }
                 else{
-                    playerAction.action = PlayerActions.FORWARD;
-                    playerAction.heading = getHeadingToMid();
+                    playerAction=greedByFood(playerAction);
                     System.out.println("aneh");
                 }
             }
