@@ -464,7 +464,7 @@ public class BotService {
             playerAction.heading = new Random().nextInt(8);
             int cand=0;
             var temptele=gameState.getGameObjects().stream().filter(item -> item.getGameObjectType() == ObjectTypes.TELEPORTER &&
-            getDistanceBetween(item,bot)<100)
+            getDistanceBetween(item,bot)<400)
                         .collect(Collectors.toList());
             if(bot.getTeleCount()>0 && bot.getSize()>30 && cand==0 && temptele.isEmpty()){
                 if(temptele.isEmpty()){
